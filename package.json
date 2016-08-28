@@ -1,0 +1,16 @@
+{
+  "name": "solvetaire",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "./node_modules/.bin/tsc",
+    "sim": "npm run tsc && node ./solvetaire.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^1.8.10"
+  }
+}
