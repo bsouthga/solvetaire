@@ -18,9 +18,15 @@ interface StateHash {
 }
 
 
+let moves = 0;
 
 function play(board: Board) {
+
   const hash = encode(board);
+
+  moves++;
+  if (moves % 50000 === 0) console.log(hash);
+
   const positions = board.positions;
   const finished = board.finished;
   const showing = board.showing;
@@ -33,11 +39,11 @@ function play(board: Board) {
   board.states[hash] = true;
 
   return (
-    move(positions, positions, board)         ||
-    move(positions, finished, board)          ||
-    move([[last(showing)]], finished, board)  ||
-    move([[last(showing)]], positions, board) ||
-    move(finished, positions, board, true)    ||
+    move(positions, positions, board)               ||
+    move(positions, finished, board, true)          ||
+    move([[last(showing)]], finished, board, true)  ||
+    move([[last(showing)]], positions, board)       ||
+    move(finished, positions, board)                ||
     play(draw(board))
   );
 }
@@ -48,14 +54,14 @@ function move(from: Card[][], to: Card[][], board: Board, finish?: boolean): str
 
   for (let i = 0, f = from.length; i < f; i++) {
     for (let j = 0, t = to.length; j < t; j++) {
-      const A = from[i].pop();
+      const A = last(from[i]);
       const B = last(to[j]);
-      if (A && B && canMove(A, B, finish)) {
-        to[j].push(A);
-        paths.push(play(clone(board)));
-        to[j].pop();
+      if (canMove(A, B, finish)) {
+        to[j].push(from[i].pop()); // move to new position for sub game
+        return play(board);
+        // paths.push(play(clone(board)));
+        // from[i].push(to[j].pop()); // move it back for this game
       }
-      if (A) from[i].push(A);
     }
   }
 
@@ -64,7 +70,6 @@ function move(from: Card[][], to: Card[][], board: Board, finish?: boolean): str
     if (paths[i]) return paths[i];
   }
 }
-
 
 
 function cloneCard(card: Card): Card {
@@ -131,12 +136,20 @@ function draw(board: Board): Board {
 }
 
 
-function canMove(A: Card, B: Card, finish?: boolean): boolean {
+function canMove(A?: Card, B?: Card, finish?: boolean): boolean {
+  if (!A) return false;
+
+  // empty position
+  if (!B && finish) return A.value === 1;
+  if (!B && !finish) return A.value === 13;
+
   const differentColor = A.suit % 2 !== B.suit % 2;
   const decrease = A.value === B.value - 1;
+  const increase = A.value === B.value + 1;
   const sameSuit = A.suit === B.suit;
+
   return finish
-    ? sameSuit && decrease
+    ? sameSuit && increase
     : differentColor && decrease;
 }
 
@@ -178,21 +191,21 @@ function join(arr: any[], fn: Function): string {
 
 function encode(board: Board): string {
   return (
-    "p:" + join(board.positions, encodeNested) + "|" +
-    "f:" + join(board.finished, encodeNested) + "|" +
-    "s:" + join(board.showing, encodeCard) + "|" +
+    "p:" + join(board.positions, encodeNested) + "\n" +
+    "f:" + join(board.finished, encodeNested) + "\n" +
+    "s:" + join(board.showing, encodeCard) + "\n" +
     "r:" + join(board.remaining, encodeCard)
   );
 }
 
 
 function encodeNested(arr: Card[]): string {
-  return "-" + join(arr, encodeCard) + "-";
+  return "-" + join(arr, encodeCard) + "\n";
 }
 
 
 function encodeCard(card: Card): string {
-  return "(" + (card.suit || "") + "," + (card.value || "") + ")";
+  return "(" + (card.value || "") + "," + (card.suit || "") + ")";
 }
 
 
@@ -232,9 +245,12 @@ function last<T>(arr: T[]): T {
 
 
 function main(): void {
-  console.log(
-    play(draw(game(deal())))
-  );
+  let games = 1000;
+  while (games--) {
+    console.log(
+      play(draw(game(deal())))
+    );
+  }
 }
 
 
